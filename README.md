@@ -110,3 +110,15 @@ $this->container->registerFallbackContainer($myContainer);
 
 <div class="alert alert-info"><strong>Note:</strong> you are not limited to one container, you can register as many as you want.</div>
 
+Installation
+------------
+
+This class is distributed as a [Composer package](https://packagist.org/packages/mouf/interop.symfony.di):
+
+```
+{
+	require: {
+		"mouf/interop.symfony.di" : "2.3.*"
+	}
+}
+```
