@@ -67,33 +67,36 @@ Want an exemple? Let's add a Pimple container that will be queried if Symfony's 
 are looking for.
 
 ```php
-/**
- * Initializes the service container.
- *
- * Use this method to initialize your own DI container and register it
- * in Symfony DI container.
- */
-protected function initializeContainer()
-{
-	parent::initializeContainer();
-    	
-	// Here, you can access the Symfony container using $this->container and register
-	// your own container in it.
+...
 
-	// Create a Pimple container and store an SplQueue object
-	$pimple = new Pimple();
-	$pimple['queue'] = function() {
-	    $queue = new SplQueue();
-	    $queue->enqueue('Hello!');
-	    return $queue;
-	};
-
-	// Create an instance of Acclimate and use it to adapt the Pimple container to the Acclimate ContainerInterface
-	$acclimate = new Acclimate();
-	$pimpleAdapter = $acclimate->adaptContainer($pimple);
-
-	// Here is an instance including Mouf's DI container:
-	$this->container->registerFallbackContainer($pimpleAdapter);
+class AppKernel extends Kernel {
+	...
+	
+	/**
+	 * Initializes the service container.
+	 *
+	 * Use this method to initialize your own DI container and register it
+	 * in Symfony DI container.
+	 */
+	protected function initializeContainer()
+	{
+		parent::initializeContainer();
+	    	
+		// Create a Pimple container and store an SplQueue object
+		$pimple = new Pimple();
+		$pimple['queue'] = function() {
+		    $queue = new SplQueue();
+		    $queue->enqueue('Hello!');
+		    return $queue;
+		};
+	
+		// Create an instance of Acclimate and use it to adapt the Pimple container to the Acclimate ContainerInterface
+		$acclimate = new Acclimate();
+		$pimpleAdapter = $acclimate->adaptContainer($pimple);
+	
+		// Let's register Pimple as a fallback container
+		$this->container->registerFallbackContainer($pimpleAdapter);
+	}
 }
 ```
 
