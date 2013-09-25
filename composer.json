@@ -1,0 +1,23 @@
+{
+    "name": "mouf/interop.symfony.di",
+    "description": "This package contains an implementation of the Symfony 2 DI container that can be extended using other DI containers (from other frameworks).",
+    "keywords": ["symfony", "di", "interop", "dependency injection"],
+    "homepage": "http://mouf-php.com/packages/mouf/interop.symfony.di",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "David Négrier",
+            "email": "d.negrier@thecodingmachine.com",
+            "homepage": "http://mouf-php.com"
+        }
+    ],
+    "require": {
+    	"php": ">=5.3.3",
+    	"symfony/dependency-injection": "~2.3"
+    },
+    "autoload": {
+        "psr-0": {
+            "Mouf": "src/"
+        }
+    }
+}
