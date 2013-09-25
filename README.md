@@ -1,10 +1,11 @@
 Extensible DI container for Symfony2
 ====================================
 
-This package contains a class that extends the `Container` class of Symfony 2.
+This package contains an `ExtensibleContainer` class that extends the `Container` class of Symfony 2.
 The extended class will let you add additional dependency injection containers (DIC) to Symfony 2's container.
 
-This means you are no more forced into using Symfony's DIC only, you can use add any DIC you want!
+This means that when you develop a Symfony 2 application, you are no more forced into using Symfony's DIC only.
+You can now use add any DIC you want!
 
 How does it work?
 -----------------
@@ -12,32 +13,38 @@ How does it work?
 In your `app/AppKernel.php` file, add these 2 methods:
 
 ```php
-/**
- * Gets the container's base class.
- * We use this to make Symfony use the ExtensibleContainer.
- *
- * @return string
- */
-protected function getContainerBaseClass()
-{
-	return 'Mouf\\Symfony\\Component\\DependencyInjection\\ExtensibleContainer';
-}
+...
 
-/**
- * Initializes the service container.
- *
- * Use this method to initialize your own DI container and register it
- * in Symfony DI container.
- */
-protected function initializeContainer()
-{
-	parent::initializeContainer();
-    	
-	// Here, you can access the Symfony container using $this->container and register
-	// your own container in it.
-
-	// Here is an instance including Mouf's DI container:
-	$this->container->registerPrependContainer(MoufManager::getMoufManager());
+class AppKernel extends Kernel {
+	...
+	
+	/**
+	 * Gets the container's base class.
+	 * We use this to make Symfony use the ExtensibleContainer.
+	 *
+	 * @return string
+	 */
+	protected function getContainerBaseClass()
+	{
+		return 'Mouf\\Symfony\\Component\\DependencyInjection\\ExtensibleContainer';
+	}
+	
+	/**
+	 * Initializes the service container.
+	 *
+	 * Use this method to initialize your own DI container and register it
+	 * in Symfony DI container.
+	 */
+	protected function initializeContainer()
+	{
+		parent::initializeContainer();
+	    	
+		// Here, you can access the Symfony container using $this->container and register
+		// your own container in it.
+	
+		// Here is an instance including Mouf's DI container:
+		$this->container->registerPrependContainer(MoufManager::getMoufManager());
+	}
 }
 ```
 
@@ -49,7 +56,7 @@ but it needs to provide the `get` and `has` methods.
 What DI containers can I plug in Symfony?
 -----------------------------------------
 
-Out of the box, you can plug in these DI containers, because they respect the `ContainerInterface` interface:
+Out of the box, you can plug these DI containers, because they respect the `ContainerInterface` interface:
 
 - Mouf (http://mouf-php.com)
 - Aura DI (https://github.com/auraphp/Aura.Di)
