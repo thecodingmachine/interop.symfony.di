@@ -2,6 +2,8 @@
 namespace Mouf\Symfony\Component\DependencyInjection;
 use Symfony\Component\DependencyInjection\Container;
 use Symfony\Component\DependencyInjection\Exception\ServiceNotFoundException;
+use Interop\Container\ParentAwareContainerInterface;
+use Interop\Container\ContainerInterface;
 
 /**
  * This class extends the Symfony container and adds a capability to add a fallback dependency injection
@@ -9,10 +11,42 @@ use Symfony\Component\DependencyInjection\Exception\ServiceNotFoundException;
  * 
  * @author David Négrier
  */
-class ExtensibleContainer extends Container {
+class ExtensibleContainer extends Container implements ParentAwareContainerInterface {
 	
-	protected $prependContainers = array();
-	protected $fallbackContainers = array();
+	/**
+	 * 
+	 * @var ContainerInterface
+	 */
+	protected $parentContainer;
+	
+	/**
+	 * The number of time this container was called recursively.
+	 * @var int
+	 */
+	protected $nbLoops = 0;
+	
+	const MODE_STANDARD_COMPLIANT = 1;
+	const MODE_ACT_AS_MASTER = 2;
+	
+	/**
+	 *
+	 * @var int
+	 */
+	protected $mode = self::MODE_ACT_AS_MASTER;
+	
+	/**
+	 * Sets the mode of pimple-interop.
+	 * There are 2 possible modes:
+	 *
+	 * - PimpleInterop::MODE_STANDARD_COMPLIANT => a mode that respects the container-interop standard.
+	 * - PimpleInterop::MODE_ACT_AS_MASTER => in this mode, if Pimple does not contain the requested
+	 *   identifier, it will query the fallback container.
+	 *
+	 * @param int $mode
+	 */
+	public function setMode($mode) {
+		$this->mode = $mode;
+	}
 	
 	/**
 	 * 
@@ -21,24 +55,20 @@ class ExtensibleContainer extends Container {
 	 */
 	public function has($id)
 	{
-		foreach ($this->prependContainers as $container) {
-			if ($container->has($id)) {
-				return true;
+		if (!$this->parentContainer || $this->mode == self::MODE_STANDARD_COMPLIANT) {
+			return parent::has($id);
+		} elseif ($this->mode == self::MODE_ACT_AS_MASTER) {
+			if ($this->nbLoops != 0) {
+				return parent::has($id);
+			} else {
+				$this->nbLoops++;
+				$has = $this->parentContainer->has($id);
+				$this->nbLoops--;
+				return $has;
 			}
+		} else {
+			throw new \Exception("Invalid mode set");
 		}
-		
-		$has = parent::has($id);
-		if ($has) {
-			return true;
-		}
-		
-		foreach ($this->fallbackContainers as $container) {
-			if ($container->has($id)) {
-				return true;
-			}
-		}
-		
-		return false;
 	}
 	
 	/**
@@ -62,65 +92,36 @@ class ExtensibleContainer extends Container {
 	 */
 	public function get($id, $invalidBehavior = self::EXCEPTION_ON_INVALID_REFERENCE)
 	{
-		// Let's search in the prepended containers:
-		foreach ($this->prependContainers as $container) {
-			if ($container->has($id)) {
-				return $container->get($id);
-			}
-		}
-		
-		$result = parent::get($id, self::NULL_ON_INVALID_REFERENCE);
-		
-		if ($result !== null) {
-			return $result;	
-		}
-		
-		// Let's search in the fallback mode:
-		foreach ($this->fallbackContainers as $container) {
-			if ($container->has($id)) {
-				return $container->get($id);
-			}
-		}
-		
-		// Finally, if we have nothing, let's trigger an exception if requested:
-		if (self::EXCEPTION_ON_INVALID_REFERENCE === $invalidBehavior) {
-			if (!$id) {
-				throw new ServiceNotFoundException($id);
-			}
-		
-			$alternatives = array();
-			foreach (array_keys($this->services) as $key) {
-				$lev = levenshtein($id, $key);
-				if ($lev <= strlen($id) / 3 || false !== strpos($key, $id)) {
-					$alternatives[] = $key;
+		if (!$this->parentContainer || $this->mode == self::MODE_STANDARD_COMPLIANT) {
+			return parent::get($id);
+		} elseif ($this->mode == self::MODE_ACT_AS_MASTER) {
+			if ($this->nbLoops != 0) {
+				/*if (!array_key_exists($id, $this->values)) {
+					throw new PimpleNotFoundException(sprintf('Identifier "%s" is not defined.', $id));
 				}
+				
+				$isFactory = is_object($this->values[$id]) && method_exists($this->values[$id], '__invoke');
+				
+				return $isFactory ? $this->values[$id]($this->wrappedFallbackContainer) : $this->values[$id];*/
+				return parent::get($id);
+				
+			} else {
+				$this->nbLoops++;
+				$instance = $this->parentContainer->get($id);
+				$this->nbLoops--;
+				return $instance;
 			}
-		
-			throw new ServiceNotFoundException($id, null, null, $alternatives);
+		} else {
+			throw new \Exception("Invalid mode set");
 		}
+		
 		return null;
 	}
 	
-	/**
-	 * Registers a container that will be queried if the Symfony container does not
-	 * contain the requested instance.
-	 * 
-	 * Note: we are not enforcing an interface yet because we lack a standard on the interface name.
-	 * 
-	 * @param ContainerInterface $container
-	 */
-	public function registerFallbackContainer($container) {
-		$this->fallbackContainers[] = $container;
-	}
-	
-	/**
-	 * Registers a container that will be queried before Symfony's container.
-	 *
-	 * Note: we are not enforcing an interface yet because we lack a standard on the interface name.
-	 *
-	 * @param ContainerInterface $container
-	 */
-	public function registerPrependContainer($container) {
-		array_unshift($this->prependContainers, $container);
+	/* (non-PHPdoc)
+	 * @see \Interop\Container\ParentAwareContainerInterface::setParentContainer()
+	*/
+	public function setParentContainer(ContainerInterface $container) {
+		$this->parentContainer = $container;
 	}
 }
